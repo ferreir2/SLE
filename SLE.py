@@ -12,7 +12,7 @@ import math
 import h5py
 import matplotlib.pyplot as plt
 
-def solve_SLE(N_RUNS, A, BETA, T):
+def solve_SLE(N_RUNS, A, BETA, T, DT=0.05):
 
     # spatial grid
     L = 20
@@ -21,7 +21,6 @@ def solve_SLE(N_RUNS, A, BETA, T):
     DX = L / (NX - 1)
 
     # time grid
-    DT = 0.05
     T_GRID = np.arange(0, T, DT)
     NT = len(T_GRID)
 
@@ -186,14 +185,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Schrodinger-Langevin equation solver')
     parser.add_argument('NAME', type=str, help='Name for the hdf5 file')
     parser.add_argument('--N_RUNS', type=int, help='Number of simulations', default=10)
-    parser.add_argument('--BETA', type=float, help='Inverse temperature beta = 1/T', default=1)
-    parser.add_argument('--A', type=float, help='Dissipation constant in SL equation', default=0.1)
-    parser.add_argument('--T', type=float, help='Final time (Initial time = 0)', default=0.5)
+    parser.add_argument('--BETA', type=float, help='Inverse temperature beta = 1/T', default=0.1)
+    parser.add_argument('--A', type=float, help='Dissipation constant in SL equation', default=1)
+    parser.add_argument('--T', type=float, help='Final time (Initial time = 0)', default=5)
+    parser.add_argument('--DT', type=float, help='Time step. Make sure to decrease this for higher temperature.', default=0.05)
+    parser.add_argument('--SEED', type=float, help='Random Seed', default=0)
+    parser.add_argument('--plot_traj', action='store_true')
 
     args = parser.parse_args()
 
-    x_grid, t_grid, sols, trajs, params = solve_SLE(args.N_RUNS, args.A, args.BETA, args.T)
-
+    np.random.seed(args.SEED)
+    x_grid, t_grid, sols, trajs, params = solve_SLE(args.N_RUNS, args.A, args.BETA, args.T, DT=args.DT)
 
     # Save to file
     with h5py.File(args.NAME + ".hdf5", "w") as f:
@@ -206,3 +208,13 @@ if __name__ == "__main__":
 
         grp.update(params)
 
+    # Plot
+    if args.plot_traj:
+        for traj in trajs:
+            plt.plot(t_grid, traj)
+        
+        plt.xlabel('Time')
+        plt.ylabel('Position')
+        plt.title('Bohmian trajectories for the SLE')
+        plt.savefig(f'{args.NAME}_traj')
+        plt.show()
